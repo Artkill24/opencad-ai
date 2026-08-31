@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenCAD-AI — Prompt to Parametric CAD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0F16;
+    --panel: #0F1721;
+    --panel-raised: #131D29;
+    --grid-line: #1C2733;
+    --cyan: #4FD8E0;
+    --cyan-dim: #2B7A80;
+    --amber: #F0A23C;
+    --red: #E2554A;
+    --text: #E7EDF2;
+    --text-muted: #7C8B9B;
+    --text-faint: #4A5868;
+    --border: #223040;
+    --font-ui: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header: title block ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .brand .mark {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+  }
+
+  .brand .mark::before { content: "◇ "; }
+
+  .brand .tagline {
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+  }
+
+  .stamp {
+    display: flex;
+    gap: 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  .stamp span b {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  .console {
+    width: 400px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+  }
+
+  .console::-webkit-scrollbar { width: 8px; }
+  .console::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .console::-webkit-scrollbar-track { background: transparent; }
+
+  .section {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--grid-line);
+  }
+
+  textarea#prompt {
+    width: 100%;
+    min-height: 84px;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  textarea#prompt:focus { border-color: var(--cyan-dim); }
+  textarea#prompt::placeholder { color: var(--text-faint); }
+
+  .prompt-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+  }
+
+  input#output-name {
+    flex: 1;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+  }
+
+  input#output-name:focus { border-color: var(--cyan-dim); }
+
+  select#material-select {
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    padding: 8px 6px;
+    outline: none;
+    cursor: pointer;
+    max-width: 90px;
+  }
+
+  select#material-select:focus { border-color: var(--cyan-dim); }
+
+  .process-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .process-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  select#process-select, select#provider-select {
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    padding: 6px 8px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select#process-select:focus, select#provider-select:focus { border-color: var(--cyan-dim); }
+
+  .process-note {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dfm-disclaimer {
+    margin-top: 10px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+  }
+
+  /* ---------- Assemblaggio ---------- */
+  .assembly-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  #refresh-parts {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  #refresh-parts:hover { border-color: var(--cyan-dim); }
+
+  .assembly-parts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .assembly-parts-empty {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    padding: 8px 0;
+  }
+
+  .assembly-part-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+  }
+
+  .assembly-part-row input[type="checkbox"] {
+    flex-shrink: 0;
+    accent-color: var(--cyan);
+  }
+
+  .assembly-part-name {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .assembly-part-pos {
+    display: flex;
+    gap: 4px;
+  }
+
+  .assembly-part-pos input {
+    width: 44px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px;
+    text-align: center;
+  }
+
+  .assembly-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  #assembly-name {
+    flex: 1;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  #assemble-btn {
+    background: var(--cyan);
+    border: none;
+    border-radius: 4px;
+    color: var(--panel);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+
+  #assemble-btn:disabled {
+    background: var(--panel-raised);
+    color: var(--text-faint);
+    cursor: not-allowed;
+  }
+
+  /* ---------- Upload foto ---------- */
+  .photo-upload {
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    background: var(--panel-raised);
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    overflow: hidden;
+  }
+
+  .photo-upload:hover { border-color: var(--cyan-dim); }
+  .photo-upload.dragover { border-color: var(--cyan); background: rgba(79, 216, 224, 0.05); }
+
+  .photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .photo-icon { font-size: 22px; color: var(--text-faint); }
+
+  #photo-preview {
+    width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .photo-flow-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .calibration-box {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(79, 216, 224, 0.05);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 4px;
+  }
+
+  .drawing-result {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(79, 216, 224, 0.05);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 4px;
+  }
+
+  .drawing-result-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .drawing-raw-text {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0 0 10px 0;
+    padding: 8px;
+    background: var(--panel-raised);
+    border-radius: 3px;
+  }
+
+  .drawing-prompts {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .drawing-prompt-btn {
+    text-align: left;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 8px 10px;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+
+  .drawing-prompt-btn:hover {
+    border-color: var(--cyan);
+    background: rgba(79, 216, 224, 0.08);
+  }
+
+  .drawing-prompt-btn .prompt-part-label {
+    display: block;
+    color: var(--text-faint);
+    font-size: 9.5px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .calibration-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .calibration-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #calibration-value {
+    flex: 1;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+  }
+
+  #calibration-value:focus { border-color: var(--cyan); }
+
+  .calibration-unit {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .calibration-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  button#analyze-photo {
+    width: 100%;
+    margin-top: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 4px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 9px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  button#analyze-photo:hover:not(:disabled) {
+    border-color: var(--cyan-dim);
+    color: var(--cyan);
+  }
+
+  button#analyze-photo:disabled {
+    color: var(--text-faint);
+    cursor: default;
+  }
+
+  .filename-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+    transition: color 0.15s ease;
+  }
+
+  .filename-hint.manual { color: #5A6C7D; }
+  .filename-hint.manual::before { content: "✎ "; }
+
+  button#generate {
+    background: var(--cyan);
+    color: #05171A;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, transform 0.08s ease;
+  }
+
+  button#generate:hover:not(:disabled) { background: #6EE3EA; }
+  button#generate:active:not(:disabled) { transform: scale(0.97); }
+  button#generate:disabled {
+    background: var(--border);
+    color: var(--text-faint);
+    cursor: default;
+  }
+
+  button#generate:disabled:hover { background: var(--border); }
+
+  /* ---------- Status ---------- */
+  .status-line {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .status-dot.busy { background: var(--cyan); animation: pulse 1s ease-in-out infinite; }
+  .status-dot.ok { background: var(--cyan); }
+  .status-dot.warn { background: var(--amber); }
+  .status-dot.error { background: var(--red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .warning-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(240, 162, 60, 0.08);
+    border: 1px solid rgba(240, 162, 60, 0.35);
+    border-radius: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #F0C088;
+    display: none;
+  }
+
+  .warning-box.visible { display: block; }
+
+  .error-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(226, 85, 74, 0.08);
+    border: 1px solid rgba(226, 85, 74, 0.35);
+    border-radius: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #F0928A;
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .error-box.visible { display: block; }
+
+  /* ---------- Metrics: drawing-style callouts ---------- */
+  .metrics {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .metrics.visible { display: grid; }
+
+  .metric {
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+
+  .metric .m-label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .metric .m-value {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--cyan);
+    font-weight: 500;
+  }
+
+  .metric .m-unit {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-left: 3px;
+  }
+
+  /* ---------- Code viewer ---------- */
+  .code-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .code-toggle:hover { color: var(--cyan); }
+  .code-toggle .arrow { transition: transform 0.15s ease; font-size: 9px; }
+  .code-toggle.open .arrow { transform: rotate(90deg); }
+
+  pre#code-view {
+    display: none;
+    margin-top: 10px;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    overflow-x: auto;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  pre#code-view.visible { display: block; }
+
+  /* ---------- Downloads ---------- */
+  .downloads {
+    display: none;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .downloads.visible { display: flex; }
+
+  .downloads a {
+    flex: 1;
+    text-align: center;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    padding: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .downloads a:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+
+  /* ---------- Viewport ---------- */
+  .viewport-wrap {
+    flex: 1;
+    position: relative;
+    background: var(--bg);
+  }
+
+  #canvas-host { width: 100%; height: 100%; display: block; }
+
+  .idle-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  .idle-overlay.hidden { opacity: 0; }
+
+  .crosshair {
+    width: 46px;
+    height: 46px;
+    position: relative;
+  }
+  .crosshair::before, .crosshair::after {
+    content: "";
+    position: absolute;
+    background: var(--text-faint);
+  }
+  .crosshair::before { width: 100%; height: 1px; top: 50%; }
+  .crosshair::after { height: 100%; width: 1px; left: 50%; }
+
+  .idle-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .viewport-hud {
+    position: absolute;
+    bottom: 16px;
+    left: 20px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="mark">OPENCAD—AI</span>
+    <span class="tagline">prompt → parametric solid</span>
+  </div>
+  <div class="stamp">
+    <span>MODELLO <b id="hud-model">—</b></span>
+    <span>SCALA <b>1:1</b></span>
+    <span>UNITÀ <b>MM</b></span>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="console">
+
+    <div class="section">
+      <div class="section-label">Da foto (opzionale)</div>
+      <div class="photo-upload" id="photo-dropzone">
+        <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+        <div class="photo-placeholder" id="photo-placeholder">
+          <span class="photo-icon">⊡</span>
+          <span>Scatta o carica una foto dell'oggetto</span>
+        </div>
+        <img id="photo-preview" alt="Anteprima foto" hidden>
+      </div>
+      <div class="photo-flow-hint">
+        l'AI stima solo la FORMA (proporzioni) — tu fornisci la misura reale dopo, con calibro o righello
+      </div>
+      <button id="analyze-photo" disabled>Analizza foto</button>
+
+      <div class="calibration-box" id="calibration-box" hidden>
+        <div class="calibration-label" id="calibration-label">Misura reale:</div>
+        <div class="calibration-row">
+          <input id="calibration-value" type="number" placeholder="es: 45" step="0.01" min="0">
+          <span class="calibration-unit">mm</span>
+        </div>
+        <div class="calibration-hint">
+          misura questa dimensione sull'oggetto vero (calibro o righello) — verrà usata per calcolare tutte le altre quote
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Da disegno tecnico (opzionale)</div>
+      <div class="photo-upload" id="drawing-dropzone">
+        <input type="file" id="drawing-input" accept="image/*" hidden>
+        <div class="photo-placeholder" id="drawing-placeholder">
+          <span class="photo-icon">⊡</span>
+          <span>Carica un disegno tecnico quotato</span>
+        </div>
+        <img id="drawing-preview" alt="Anteprima disegno" hidden>
+      </div>
+      <div class="photo-flow-hint">
+        legge le quote SCRITTE sul disegno (numeri reali) — diverso dalla foto sopra, che stima solo proporzioni
+      </div>
+      <button id="analyze-drawing" disabled>Analizza disegno</button>
+
+      <div class="drawing-result" id="drawing-result" hidden>
+        <div class="drawing-result-label">Quote estratte:</div>
+        <pre class="drawing-raw-text" id="drawing-raw-text"></pre>
+        <div class="drawing-prompts" id="drawing-prompts"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Richiesta</div>
+      <textarea id="prompt" placeholder="Es: una flangia circolare diametro 90mm, spessore 10mm, foro centrale 30mm, con 8 fori M5 su una circonferenza di 70mm..."></textarea>
+      <div class="prompt-row">
+        <input id="output-name" type="text" value="generated_model" spellcheck="false" title="Nome del file salvato in outputs/ — si aggiorna da solo in base alla richiesta, a meno che tu non lo modifichi qui.">
+        <select id="material-select" title="Materiale per la stima di peso e costo"></select>
+        <button id="generate" disabled>Genera</button>
+      </div>
+      <div class="process-row">
+        <span class="process-label">Processo:</span>
+        <select id="process-select" title="Processo di produzione — determina le soglie di overhang e spessore minimo"></select>
+        <span class="process-note" id="process-note"></span>
+      </div>
+      <div class="process-row">
+        <span class="process-label">Motore:</span>
+        <select id="provider-select" title="Motore di generazione codice">
+          <option value="gemini">Gemini (verificato)</option>
+          <option value="hybrid">Ibrido: Gemini 1° tentativo + Groq correzioni</option>
+          <option value="groq">Groq (veloce, NON verificato)</option>
+        </select>
+        <span class="process-note" id="provider-note"></span>
+      </div>
+      <div class="filename-hint" id="filename-hint">nome file salvato — si aggiorna in automatico dalla richiesta</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Stato</div>
+      <div class="status-line">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">In attesa di una richiesta.</span>
+      </div>
+      <div class="warning-box" id="warning-box"></div>
+      <div class="error-box" id="error-box"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Metriche</div>
+      <div class="metrics" id="metrics">
+        <div class="metric">
+          <div class="m-label">Bounding Box</div>
+          <div class="m-value" id="m-bbox">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Volume</div>
+          <div class="m-value" id="m-volume">—<span class="m-unit">mm³</span></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Peso stimato</div>
+          <div class="m-value" id="m-weight">—<span class="m-unit">g</span></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Costo materiale</div>
+          <div class="m-value" id="m-cost">—<span class="m-unit">EUR</span></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Sbalzi a rischio</div>
+          <div class="m-value" id="m-overhang">—<span class="m-unit">%</span></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Spessore min. (stima)</div>
+          <div class="m-value" id="m-wall">—<span class="m-unit">mm</span></div>
+        </div>
+      </div>
+      <div class="dfm-disclaimer" id="dfm-disclaimer"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Assemblaggio</div>
+      <div class="assembly-hint">
+        posizionamento manuale (offset X/Y/Z) -- nessun accoppiamento automatico delle quote
+      </div>
+      <button id="refresh-parts">Aggiorna elenco parti</button>
+      <div class="assembly-parts" id="assembly-parts"></div>
+      <div class="assembly-row">
+        <input id="assembly-name" type="text" value="assieme" spellcheck="false" title="Nome del file assieme salvato">
+        <button id="assemble-btn" disabled>Assembla</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="code-toggle" id="code-toggle">
+        <span class="arrow">▸</span>
+        <span>Codice CadQuery generato</span>
+      </button>
+      <pre id="code-view"></pre>
+      <div class="downloads" id="downloads">
+        <a id="dl-step" download>.STEP</a>
+        <a id="dl-stl" download>.STL</a>
+        <a id="dl-drawing" download>Disegno 2D</a>
+        <a id="dl-dxf" download>.DXF (laser/CNC)</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="viewport-wrap">
+    <div id="canvas-host"></div>
+    <div class="idle-overlay" id="idle-overlay">
+      <div class="crosshair"></div>
+      <div class="idle-text">Nessun pezzo caricato</div>
+    </div>
+    <div class="viewport-hud" id="viewport-hud"></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+
+// ---------- Three.js scene ----------
+const host = document.getElementById("canvas-host");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0A0F16);
+scene.fog = new THREE.Fog(0x0A0F16, 200, 900);
+
+const camera = new THREE.PerspectiveCamera(40, host.clientWidth / host.clientHeight, 0.1, 5000);
+camera.position.set(140, 110, 160);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(host.clientWidth, host.clientHeight);
+host.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.1;
+controls.addEventListener("start", () => { controls.autoRotate = false; });
+// Limiti di default prima che un pezzo sia caricato -- ricalcolati in
+// modo specifico per ogni pezzo dentro loadSTL() una volta noto maxDim.
+controls.minDistance = 10;
+controls.maxDistance = 3000;
+
+// ---------- Zoom verso il cursore (non verso il centro fisso) ----------
+// Di default OrbitControls zooma sempre verso/da un punto fisso (target),
+// indipendentemente da dove punta il mouse -- non permette di avvicinarsi
+// con precisione a un dettaglio specifico (es. un singolo dente di un
+// ingranaggio) senza prima ruotare tutta la vista. Qui disabilitiamo lo
+// zoom nativo e lo sostituiamo: un raggio dal cursore trova il punto
+// esatto sulla mesh sotto il mouse, il bersaglio dell'orbita si sposta lì,
+// e la telecamera si avvicina/allontana lungo quella direzione. Il
+// clamping di sicurezza (non entrare nella mesh, non allontanarsi troppo)
+// riusa controls.minDistance/maxDistance -- lo stesso meccanismo collaudato
+// di OrbitControls, si applica automaticamente anche quando la posizione
+// della telecamera viene impostata a mano, via controls.update().
+controls.enableZoom = false;
+
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let currentMaxDim = 100; // aggiornato in loadSTL() quando un pezzo viene caricato
+
+renderer.domElement.addEventListener("wheel", (event) => {
+  event.preventDefault();
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointerNDC.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  let pivot;
+  if (currentMesh) {
+    const hits = raycaster.intersectObject(currentMesh, true);
+    pivot = hits.length > 0 ? hits[0].point : controls.target.clone();
+  } else {
+    pivot = controls.target.clone();
+  }
+
+  controls.target.copy(pivot);
+
+  const direction = camera.position.clone().sub(pivot);
+  const zoomStep = event.deltaY > 0 ? 1.1 : 0.9; // scroll giù = allontana, scroll su = avvicina
+  camera.position.copy(pivot.clone().add(direction.multiplyScalar(zoomStep)));
+
+  // Limiti aggiornati qui (non solo in loadSTL) perché currentMaxDim può
+  // cambiare tra una generazione e l'altra nella stessa sessione.
+  controls.minDistance = Math.max(0.5, camera.near * 4);
+  controls.maxDistance = currentMaxDim * 8;
+
+  controls.update();
+}, { passive: false });
+
+// Blueprint grid floor
+const grid = new THREE.GridHelper(400, 40, 0x2B7A80, 0x1C2733);
+grid.position.y = -0.01;
+scene.add(grid);
+
+// Lighting: cool key + cyan rim, evokes drafting-table lamp
+const keyLight = new THREE.DirectionalLight(0xE7EDF2, 1.1);
+keyLight.position.set(120, 200, 100);
+scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x4FD8E0, 0.5);
+rimLight.position.set(-150, 80, -100);
+scene.add(rimLight);
+scene.add(new THREE.AmbientLight(0x1C2733, 1.2));
+
+let currentMesh = null;
+
+function fitCameraToObject(mesh) {
+  const box = new THREE.Box3().setFromObject(mesh);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const dist = maxDim * 2.2;
+
+  mesh.position.sub(center); // center the part at origin
+
+  camera.position.set(dist * 0.7, dist * 0.55, dist * 0.7);
+  camera.near = maxDim / 100;
+  camera.far = maxDim * 50;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+
+  const gridSize = Math.max(200, maxDim * 3);
+  scene.remove(grid);
+}
+
+// Aspetto visivo per materiale -- collega il selettore materiale (già
+// usato per peso/costo) anche alla resa nel viewer, invece di un colore
+// fisso sempre uguale indipendentemente dal materiale scelto. Mantiene
+// l'estetica "blueprint" (tinta cyan, bagliore emissivo) come tratto
+// distintivo -- non punta al fotorealismo, solo a dare un senso diverso
+// tra plastica opaca e metallo lucido restando nello stesso stile.
+const MATERIAL_APPEARANCE = {
+  PLA:            { color: 0x4FD8E0, metalness: 0.35, roughness: 0.45 },
+  ABS:            { color: 0x4FD8E0, metalness: 0.30, roughness: 0.50 },
+  PETG:           { color: 0x4FD8E0, metalness: 0.35, roughness: 0.22 }, // più lucido
+  NYLON_PA12:     { color: 0x6FA8AC, metalness: 0.15, roughness: 0.65 }, // più opaco, meno saturo
+  // Metalness abbassata rispetto alla prima versione (0.80/0.85 -> 0.5/0.55):
+  // verificato che con metalness molto alta il colore proprio del materiale
+  // sparisce quasi del tutto senza una mappa d'ambiente per i riflessi (che
+  // questa scena non ha, solo luci direzionali) -- il pezzo appariva piatto
+  // e sbiadito, quasi bianco, non per un bug ma per fisica del rendering
+  // PBR. Valori più moderati restano visivamente "metallici" (più lucidi
+  // e grigi delle plastiche) ma mostrano ancora il colore proprio.
+  ALLUMINIO_6061: { color: 0x9FC5C8, metalness: 0.50, roughness: 0.28 }, // tendente al grigio-argento
+  ACCIAIO:        { color: 0x7A9296, metalness: 0.55, roughness: 0.35 }, // più scuro, metallico
+};
+const DEFAULT_APPEARANCE = { color: 0x4FD8E0, metalness: 0.35, roughness: 0.40 };
+
+function _presentGeometry(geometry) {
+  if (currentMesh) {
+    scene.remove(currentMesh);
+    currentMesh.geometry.dispose();
+    currentMesh.material.dispose();
+  }
+
+  // STLLoader e l'estrazione da GLTF restituiscono entrambe geometrie NON
+  // indicizzate (nessun vertice condiviso tra triangoli adiacenti) --
+  // computeVertexNormals() su una mesh così calcola normali PIATTE per
+  // ogni singolo triangolo, non smussate tra facce vicine. Su cilindri/fori
+  // tassellati (sempre presenti, anche se non sempre visibili) questo crea
+  // sfaccettature reali -- poco percepibili con un materiale opaco, ma
+  // vistose con un materiale molto speculare come l'acciaio (osservato:
+  // effetto "a stella" attorno ai fori con metalness/roughness elevati).
+  // toCreasedNormals smussa le normali tra facce il cui angolo relativo è
+  // SOTTO la soglia data (qui ~35 gradi -- curve tassellate in piccoli
+  // gradini), ma mantiene le normali piatte (spigolo netto visibile) sopra
+  // quella soglia -- a differenza di un semplice mergeVertices+
+  // computeVertexNormals, che smusserebbe ANCHE gli spigoli veri (angoli
+  // di cubi, poliedri, smussi netti), rovinando esattamente le geometrie
+  // su cui abbiamo lavorato di più oggi.
+  geometry = toCreasedNormals(geometry, Math.PI / 5.14); // ~35 gradi
+  geometry.center();
+
+  const aspetto = MATERIAL_APPEARANCE[materialSelect.value] || DEFAULT_APPEARANCE;
+  const material = new THREE.MeshStandardMaterial({
+    color: aspetto.color,
+    metalness: aspetto.metalness,
+    roughness: aspetto.roughness,
+    emissive: 0x0B2A2C,
+    emissiveIntensity: 0.4,
+    // DoubleSide invece del default FrontSide: verificato un caso reale
+    // (pianta di una casa, scala architettonica) con viewport
+    // completamente vuoto nonostante camera/near/far/target tutti
+    // matematicamente corretti (confermato via log diagnostico) --
+    // spiegazione più probabile: normali della mesh rivolte verso
+    // l'interno su una geometria costruita con operazioni booleane
+    // complesse (svuotamento + tagli), che FrontSide (backface culling)
+    // nasconderebbe del tutto da qualsiasi angolazione. DoubleSide rende
+    // il viewer robusto a questo indipendentemente dalla causa esatta
+    // dell'inversione -- costo: un po' più di calcolo GPU, trascurabile
+    // per le mesh che generiamo.
+    side: THREE.DoubleSide,
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.rotation.x = -Math.PI / 2; // STL/CAD Z-up -> Three.js Y-up
+
+  // Scan-line reveal: clip plane sweeps through the part on load
+  const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1000);
+  material.clippingPlanes = [clipPlane];
+  renderer.localClippingEnabled = true;
+
+  scene.add(mesh);
+  currentMesh = mesh;
+
+  const box = new THREE.Box3().setFromObject(mesh);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z) || 100;
+  const dist = maxDim * 2.4;
+  camera.position.set(dist * 0.65, dist * 0.5, dist * 0.75);
+  camera.near = Math.max(0.1, maxDim / 200);
+  camera.far = maxDim * 60;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.autoRotate = true;
+
+  // CAUSA TROVATA E CORRETTA: scene.fog era impostata una sola volta
+  // all'avvio con valori fissi (near=200, far=900mm), mai aggiornata in
+  // base alla dimensione del pezzo caricato. Per pezzi piccoli (camera
+  // tipicamente a 100-300mm di distanza) restava sempre ben dentro il
+  // raggio di 900mm e non si notava mai. Per un oggetto in scala
+  // architettonica (verificato: una casa 6000x5000x2700mm, camera a
+  // ~16000mm di distanza) l'INTERO oggetto cadeva oltre i 900mm dov'è
+  // impostata la nebbia densa al 100% -- che ha lo STESSO colore esatto
+  // dello sfondo, quindi il pezzo spariva completamente, mimetizzato,
+  // pur essendo renderizzato correttamente (nessun errore, mesh
+  // caricata, camera puntata nel posto giusto -- tutto confermato dal
+  // log diagnostico). Ora la nebbia scala con la distanza della camera,
+  // mantenendo le stesse proporzioni relative viste finora sui pezzi
+  // piccoli (near/far della nebbia erano rispettivamente ~0.83x e ~3.75x
+  // la distanza tipica della camera per un pezzo di ~100mm).
+  scene.fog.near = dist * 0.83;
+  scene.fog.far = dist * 3.75;
+
+  // Limiti base per rotazione/pan; lo ZOOM ora è gestito dal listener
+  // "wheel" personalizzato sopra (zoom verso il cursore, non verso il
+  // centro fisso) -- currentMaxDim gli serve per il tetto massimo di
+  // distanza, ricalcolato qui ad ogni nuovo pezzo caricato.
+  currentMaxDim = maxDim;
+  controls.minDistance = Math.max(0.5, camera.near * 4);
+  controls.maxDistance = maxDim * 8;
+
+  controls.update();
+
+  document.getElementById("idle-overlay").classList.add("hidden");
+  document.getElementById("viewport-hud").textContent =
+    `${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`;
+
+  // Animate scan sweep from top to bottom of bounding box
+  const top = box.max.y + 2;
+  const bottom = box.min.y - 2;
+  clipPlane.constant = top;
+  const start = performance.now();
+  const duration = 750;
+  function sweep(now) {
+    const t = Math.min(1, (now - start) / duration);
+    clipPlane.constant = top - (top - bottom) * t;
+    if (t < 1) requestAnimationFrame(sweep);
+    else material.clippingPlanes = [];
+  }
+  requestAnimationFrame(sweep);
+}
+
+function loadSTL(url) {
+  const loader = new STLLoader();
+  loader.load(url, (geometry) => _presentGeometry(geometry));
+}
+
+function _extractFirstMeshGeometry(gltf) {
+  // Estrae la geometria della prima mesh trovata nella scena GLTF,
+  // "cotta" (applyMatrix4) con la trasformazione del suo nodo genitore
+  // -- necessario perché GLTF può annidare la mesh dentro nodi con una
+  // propria trasformazione locale, a differenza di STLLoader che
+  // restituisce sempre una geometria già "piatta". Senza questo, un
+  // eventuale nodo intermedio con la propria posizione/rotazione
+  // produrrebbe una geometria nel posto/orientamento sbagliato.
+  let found = null;
+  gltf.scene.traverse((child) => {
+    if (!found && child.isMesh) found = child;
+  });
+  if (!found) return null;
+  found.updateWorldMatrix(true, false);
+  const geometry = found.geometry.clone();
+  geometry.applyMatrix4(found.matrixWorld);
+  return geometry;
+}
+
+function loadModel(glbUrl, stlUrl) {
+  // Preferisce GLB (più leggero, verificato 55-65% in meno di STL su
+  // mesh dense) quando disponibile, con fallback automatico a STL sia se
+  // GLB non è stato generato (glbUrl assente) sia in caso di errore di
+  // caricamento -- il viewer non deve mai restare vuoto per un problema
+  // sul formato più leggero quando quello di riserva è disponibile.
+  if (!glbUrl) {
+    loadSTL(stlUrl);
+    return;
+  }
+  const loader = new GLTFLoader();
+  loader.load(
+    glbUrl,
+    (gltf) => {
+      const geometry = _extractFirstMeshGeometry(gltf);
+      if (!geometry) {
+        loadSTL(stlUrl);
+        return;
+      }
+      _presentGeometry(geometry);
+    },
+    undefined,
+    () => loadSTL(stlUrl)
+  );
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener("resize", () => {
+  camera.aspect = host.clientWidth / host.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(host.clientWidth, host.clientHeight);
+});
+
+// ---------- UI wiring ----------
+const promptEl = document.getElementById("prompt");
+const outputNameEl = document.getElementById("output-name");
+const filenameHint = document.getElementById("filename-hint");
+const generateBtn = document.getElementById("generate");
+const statusDot = document.getElementById("status-dot");
+const statusText = document.getElementById("status-text");
+const warningBox = document.getElementById("warning-box");
+const errorBox = document.getElementById("error-box");
+const metricsBox = document.getElementById("metrics");
+const bboxValue = document.getElementById("m-bbox");
+const volumeValue = document.getElementById("m-volume");
+const codeToggle = document.getElementById("code-toggle");
+const codeView = document.getElementById("code-view");
+const downloads = document.getElementById("downloads");
+const dlStep = document.getElementById("dl-step");
+const dlStl = document.getElementById("dl-stl");
+const dlDrawing = document.getElementById("dl-drawing");
+const dlDxf = document.getElementById("dl-dxf");
+const hudModel = document.getElementById("hud-model");
+const materialSelect = document.getElementById("material-select");
+const processSelect = document.getElementById("process-select");
+const processNote = document.getElementById("process-note");
+const providerSelect = document.getElementById("provider-select");
+const providerNote = document.getElementById("provider-note");
+const weightValue = document.getElementById("m-weight");
+const costValue = document.getElementById("m-cost");
+const overhangValue = document.getElementById("m-overhang");
+const wallValue = document.getElementById("m-wall");
+const dfmDisclaimer = document.getElementById("dfm-disclaimer");
+
+// Se un pezzo è già caricato, cambiare materiale aggiorna subito il suo
+// aspetto nel viewer -- senza questo, il colore/lucentezza resterebbero
+// quelli del materiale scelto al momento della generazione, disallineati
+// dal selettore se l'utente lo cambia dopo (nota: NON ricalcola peso/costo,
+// quelli restano legati all'ultima generazione finché non se ne fa una nuova).
+materialSelect.addEventListener("change", () => {
+  if (!currentMesh) return;
+  const aspetto = MATERIAL_APPEARANCE[materialSelect.value] || DEFAULT_APPEARANCE;
+  currentMesh.material.color.setHex(aspetto.color);
+  currentMesh.material.metalness = aspetto.metalness;
+  currentMesh.material.roughness = aspetto.roughness;
+});
+
+// Popola il selettore materiali dal backend invece di duplicare l'elenco
+// qui -- se la tabella MATERIALS cambia lato server, il frontend segue
+// automaticamente senza bisogno di un secondo aggiornamento.
+fetch("/api/v1/materials")
+  .then(r => r.json())
+  .then(data => {
+    materialSelect.innerHTML = (data.materials || ["PLA"])
+      .map(m => `<option value="${m}">${m}</option>`)
+      .join("");
+  })
+  .catch(() => {
+    materialSelect.innerHTML = '<option value="PLA">PLA</option>';
+  });
+
+// Stessa logica per il processo -- popola dal backend, e mostra una nota
+// discreta sotto (es. "SLS: nessun supporto necessario") quando cambia.
+let processProfiles = [];
+fetch("/api/v1/processes")
+  .then(r => r.json())
+  .then(data => {
+    processProfiles = data.processes || [{ key: "FDM", label: "FDM (filamento fuso)" }];
+    processSelect.innerHTML = processProfiles
+      .map(p => `<option value="${p.key}">${p.label}</option>`)
+      .join("");
+  })
+  .catch(() => {
+    processSelect.innerHTML = '<option value="FDM">FDM (filamento fuso)</option>';
+  });
+
+// Il motore Groq è NON verificato (vedi nota in llm_pipeline.py) -- lo
+// segnaliamo esplicitamente ad ogni selezione, non solo alla prima volta,
+// perché è un avviso di rischio, non un dettaglio da vedere una sola volta.
+function aggiornaNotaProvider() {
+  if (providerSelect.value === "groq") {
+    providerNote.textContent = "Non verificato in questa build -- controlla il nome del modello e testa prima di fidartene.";
+  } else if (providerSelect.value === "hybrid") {
+    providerNote.textContent = "Le correzioni usano Groq (non verificato) -- il primo tentativo resta su Gemini.";
+  } else {
+    providerNote.textContent = "";
+  }
+}
+providerSelect.addEventListener("change", aggiornaNotaProvider);
+aggiornaNotaProvider();
+
+codeToggle.addEventListener("click", () => {
+  codeToggle.classList.toggle("open");
+  codeView.classList.toggle("visible");
+});
+
+// ---------- Nome file auto-derivato dal prompt ----------
+// Finché l'utente non modifica il campo a mano, il nome del file segue
+// automaticamente il testo della richiesta (prime parole, slugificate).
+// Evita la confusione tra "cosa generare" (textarea) e "come si chiama
+// il file salvato" (questo campo) -- due ruoli diversi, prima poco distinti.
+let filenameEditedManually = false;
+
+function slugify(text) {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[àáâã]/g, "a").replace(/[èéê]/g, "e")
+    .replace(/[ìíî]/g, "i").replace(/[òóôõ]/g, "o").replace(/[ùúû]/g, "u")
+    .split(/\s+/)
+    .slice(0, 6)
+    .join("_")
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 50) || "generated_model";
+}
+
+promptEl.addEventListener("input", () => {
+  if (!filenameEditedManually) {
+    outputNameEl.value = slugify(promptEl.value);
+  }
+  generateBtn.disabled = promptEl.value.trim().length === 0;
+});
+
+outputNameEl.addEventListener("input", () => {
+  filenameEditedManually = true;
+  filenameHint.textContent = "nome file personalizzato";
+  filenameHint.classList.add("manual");
+});
+
+// Al caricamento: campo vuoto -> bottone disabilitato finché non si scrive una richiesta.
+outputNameEl.value = "generated_model";
+filenameHint.textContent = "nome file salvato — si aggiorna in automatico dalla richiesta";
+generateBtn.disabled = true;
+
+// ---------- Da foto: upload, analisi forma, calibrazione post-analisi ----------
+const photoDropzone = document.getElementById("photo-dropzone");
+const photoInput = document.getElementById("photo-input");
+const photoPlaceholder = document.getElementById("photo-placeholder");
+const photoPreview = document.getElementById("photo-preview");
+const analyzeBtn = document.getElementById("analyze-photo");
+const calibrationBox = document.getElementById("calibration-box");
+const calibrationLabel = document.getElementById("calibration-label");
+const calibrationValueEl = document.getElementById("calibration-value");
+
+let selectedPhotoFile = null;
+let currentReferenceDimensionName = null; // impostato dopo un'analisi foto riuscita
+
+photoDropzone.addEventListener("click", () => photoInput.click());
+
+photoDropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  photoDropzone.classList.add("dragover");
+});
+photoDropzone.addEventListener("dragleave", () => {
+  photoDropzone.classList.remove("dragover");
+});
+photoDropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  photoDropzone.classList.remove("dragover");
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    setPhotoFile(e.dataTransfer.files[0]);
+  }
+});
+
+photoInput.addEventListener("change", () => {
+  if (photoInput.files && photoInput.files[0]) {
+    setPhotoFile(photoInput.files[0]);
+  }
+});
+
+function setPhotoFile(file) {
+  if (!file.type.startsWith("image/")) {
+    setStatus("error", "Il file scelto non è un'immagine.");
+    return;
+  }
+  selectedPhotoFile = file;
+  photoPlaceholder.hidden = true;
+  photoPreview.hidden = false;
+  photoPreview.src = URL.createObjectURL(file);
+  analyzeBtn.disabled = false;
+  calibrationBox.hidden = true; // una nuova foto invalida la calibrazione precedente
+  currentReferenceDimensionName = null;
+}
+
+analyzeBtn.addEventListener("click", async () => {
+  if (!selectedPhotoFile) return;
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = "Analisi in corso...";
+  setStatus("busy", "Analisi forma — Gemini vision in corso...");
+  calibrationBox.hidden = true;
+
+  const formData = new FormData();
+  formData.append("file", selectedPhotoFile);
+
+  try {
+    const resp = await fetch("/api/v1/describe-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json();
+      setStatus("error", (errData.detail && errData.detail.message) || "Errore analisi immagine.");
+      return;
+    }
+
+    const data = await resp.json();
+    promptEl.value = data.proportional_description;
+    promptEl.dispatchEvent(new Event("input")); // aggiorna nome file + stato bottone Genera
+
+    currentReferenceDimensionName = data.reference_dimension_name;
+    calibrationLabel.textContent = `Misura reale — ${currentReferenceDimensionName}:`;
+    calibrationValueEl.value = "";
+    calibrationBox.hidden = false;
+
+    setStatus("warn", "Forma stimata. Misura la dimensione indicata sull'oggetto vero e inseriscila prima di generare.");
+  } catch (err) {
+    setStatus("error", "Impossibile contattare il backend per l'analisi immagine.");
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "Analizza foto";
+  }
+});
+
+// ---------- Da disegno tecnico: upload, estrazione quote, prompt suggeriti ----------
+// Logica distinta dalla foto sopra: qui i numeri sono presi dal disegno
+// (letti, non stimati), quindi niente calibrazione post-analisi -- il
+// backend separa già QUOTE_SICURE da QUOTE_INCERTE, mostriamo tutto grezzo
+// così l'utente verifica prima di fidarsi, invece di nascondere l'incertezza.
+const drawingDropzone = document.getElementById("drawing-dropzone");
+const drawingInput = document.getElementById("drawing-input");
+const drawingPlaceholder = document.getElementById("drawing-placeholder");
+const drawingPreview = document.getElementById("drawing-preview");
+const analyzeDrawingBtn = document.getElementById("analyze-drawing");
+const drawingResult = document.getElementById("drawing-result");
+const drawingRawText = document.getElementById("drawing-raw-text");
+const drawingPrompts = document.getElementById("drawing-prompts");
+
+let selectedDrawingFile = null;
+
+drawingDropzone.addEventListener("click", () => drawingInput.click());
+
+drawingDropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  drawingDropzone.classList.add("dragover");
+});
+drawingDropzone.addEventListener("dragleave", () => {
+  drawingDropzone.classList.remove("dragover");
+});
+drawingDropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  drawingDropzone.classList.remove("dragover");
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    setDrawingFile(e.dataTransfer.files[0]);
+  }
+});
+
+drawingInput.addEventListener("change", () => {
+  if (drawingInput.files && drawingInput.files[0]) {
+    setDrawingFile(drawingInput.files[0]);
+  }
+});
+
+function setDrawingFile(file) {
+  if (!file.type.startsWith("image/")) {
+    setStatus("error", "Il file scelto non è un'immagine.");
+    return;
+  }
+  selectedDrawingFile = file;
+  drawingPlaceholder.hidden = true;
+  drawingPreview.hidden = false;
+  drawingPreview.src = URL.createObjectURL(file);
+  analyzeDrawingBtn.disabled = false;
+  drawingResult.hidden = true;
+}
+
+// Estrae i blocchi "PARTE N: ..." e i relativi "PROMPT_SUGGERITO: ..."
+// dal testo grezzo per renderli come bottoni cliccabili -- il resto del
+// testo (QUOTE_SICURE, QUOTE_INCERTE) resta visibile per intero sopra,
+// non nascosto dietro il parsing.
+function estraiPromptSuggeriti(rawText) {
+  const blocchi = rawText.split(/(?=PARTE\s+\d+\s*:)/i);
+  const risultati = [];
+  for (const blocco of blocchi) {
+    const labelMatch = blocco.match(/^PARTE\s+\d+\s*:\s*([^\n]+)/i);
+    const promptMatch = blocco.match(/PROMPT_SUGGERITO\s*:\s*([^\n]+)/i);
+    if (promptMatch) {
+      risultati.push({
+        label: labelMatch ? labelMatch[1].trim() : "Parte",
+        prompt: promptMatch[1].trim(),
+      });
+    }
+  }
+  return risultati;
+}
+
+analyzeDrawingBtn.addEventListener("click", async () => {
+  if (!selectedDrawingFile) return;
+
+  analyzeDrawingBtn.disabled = true;
+  analyzeDrawingBtn.textContent = "Analisi in corso...";
+  setStatus("busy", "Lettura disegno tecnico — Gemini vision in corso...");
+  drawingResult.hidden = true;
+
+  const formData = new FormData();
+  formData.append("file", selectedDrawingFile);
+
+  try {
+    const resp = await fetch("/api/v1/analyze-drawing", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json();
+      setStatus("error", (errData.detail && errData.detail.message) || "Errore analisi disegno.");
+      return;
+    }
+
+    const data = await resp.json();
+    drawingRawText.textContent = data.raw_text;
+
+    const suggeriti = estraiPromptSuggeriti(data.raw_text);
+    drawingPrompts.innerHTML = "";
+    for (const s of suggeriti) {
+      const btn = document.createElement("button");
+      btn.className = "drawing-prompt-btn";
+      btn.innerHTML = `<span class="prompt-part-label">${s.label} — usa questo prompt</span>${s.prompt}`;
+      btn.addEventListener("click", () => {
+        promptEl.value = s.prompt;
+        promptEl.dispatchEvent(new Event("input"));
+        setStatus("ok", "Prompt inserito dal disegno tecnico — verifica le quote sopra prima di generare.");
+      });
+      drawingPrompts.appendChild(btn);
+    }
+
+    drawingResult.hidden = false;
+    setStatus("warn", "Disegno analizzato — verifica le quote (sicure vs incerte) prima di usare un prompt suggerito.");
+  } catch (err) {
+    setStatus("error", "Impossibile contattare il backend per l'analisi del disegno.");
+  } finally {
+    analyzeDrawingBtn.disabled = false;
+    analyzeDrawingBtn.textContent = "Analizza disegno";
+  }
+});
+
+// ---------- Assemblaggio: elenco parti salvate, posizionamento manuale ----------
+// Posizionamento MANUALE (offset X/Y/Z per parte), non un risolutore
+// automatico di vincoli meccanici -- vedi assembler.py per il perché.
+const refreshPartsBtn = document.getElementById("refresh-parts");
+const assemblyPartsEl = document.getElementById("assembly-parts");
+const assemblyNameEl = document.getElementById("assembly-name");
+const assembleBtn = document.getElementById("assemble-btn");
+
+function aggiornaStatoBottoneAssembla() {
+  const selezionate = assemblyPartsEl.querySelectorAll('input[type="checkbox"]:checked');
+  assembleBtn.disabled = selezionate.length < 2;
+}
+
+refreshPartsBtn.addEventListener("click", async () => {
+  refreshPartsBtn.disabled = true;
+  refreshPartsBtn.textContent = "Aggiornamento...";
+  try {
+    const resp = await fetch("/api/v1/list-parts");
+    const data = await resp.json();
+    const parts = data.parts || [];
+
+    assemblyPartsEl.innerHTML = "";
+    if (parts.length === 0) {
+      assemblyPartsEl.innerHTML = '<div class="assembly-parts-empty">Nessuna parte generata ancora — genera almeno 2 pezzi prima.</div>';
+    } else {
+      for (const p of parts) {
+        const row = document.createElement("div");
+        row.className = "assembly-part-row";
+        row.innerHTML = `
+          <input type="checkbox" data-step-path="${p.step_path}" data-name="${p.name}">
+          <span class="assembly-part-name" title="${p.name}">${p.name}</span>
+          <div class="assembly-part-pos">
+            <input type="number" value="0" step="any" title="offset X (mm)" class="pos-x">
+            <input type="number" value="0" step="any" title="offset Y (mm)" class="pos-y">
+            <input type="number" value="0" step="any" title="offset Z (mm)" class="pos-z">
+          </div>
+        `;
+        row.querySelector('input[type="checkbox"]').addEventListener("change", aggiornaStatoBottoneAssembla);
+        assemblyPartsEl.appendChild(row);
+      }
+    }
+    aggiornaStatoBottoneAssembla();
+  } catch (err) {
+    setStatus("error", "Impossibile caricare l'elenco delle parti.");
+  } finally {
+    refreshPartsBtn.disabled = false;
+    refreshPartsBtn.textContent = "Aggiorna elenco parti";
+  }
+});
+
+assembleBtn.addEventListener("click", async () => {
+  const righe = [...assemblyPartsEl.querySelectorAll(".assembly-part-row")];
+  const parti = [];
+  for (const row of righe) {
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (!checkbox.checked) continue;
+    parti.push({
+      step_path: checkbox.dataset.stepPath,
+      name: checkbox.dataset.name,
+      position: [
+        parseFloat(row.querySelector(".pos-x").value) || 0,
+        parseFloat(row.querySelector(".pos-y").value) || 0,
+        parseFloat(row.querySelector(".pos-z").value) || 0,
+      ],
+    });
+  }
+
+  if (parti.length < 2) return;
+
+  assembleBtn.disabled = true;
+  assembleBtn.textContent = "Assemblaggio...";
+  setStatus("busy", "Assemblaggio in corso...");
+  resetOutputPanels();
+
+  try {
+    const resp = await fetch("/api/v1/assemble", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parts: parti, output_name: assemblyNameEl.value || "assieme" }),
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json();
+      setStatus("error", (errData.detail && errData.detail.message) || "Errore durante l'assemblaggio.");
+      return;
+    }
+
+    const data = await resp.json();
+
+    bboxValue.textContent = `${data.bbox_mm.x} × ${data.bbox_mm.y} × ${data.bbox_mm.z}`;
+    volumeValue.textContent = data.volume_mm3.toLocaleString("it-IT");
+    metricsBox.classList.add("visible");
+
+    dlStep.href = "/" + data.files.step_path;
+    dlStep.style.display = "";
+    dlDrawing.style.display = "none"; // un assieme non ha un disegno tecnico associato
+    dlDxf.style.display = "none"; // un assieme non ha un profilo DXF associato
+    dlStl.href = "/" + data.files.stl_path;
+    downloads.classList.add("visible");
+    loadModel(
+      data.files.glb_path ? "/" + data.files.glb_path + "?t=" + Date.now() : null,
+      "/" + data.files.stl_path + "?t=" + Date.now()
+    );
+    hudModel.textContent = assemblyNameEl.value || "assieme";
+
+    setStatus("ok", "Assemblaggio completato.");
+  } catch (err) {
+    setStatus("error", "Impossibile contattare il backend per l'assemblaggio.");
+  } finally {
+    assembleBtn.disabled = false;
+    assembleBtn.textContent = "Assembla";
+  }
+});
+
+// Combina la descrizione proporzionale con la misura reale fornita
+// dall'utente, in modo idempotente (rimuove una calibrazione precedente
+// prima di aggiungerne una nuova, così cliccare Genera più volte con
+// valori diversi non accumula testo). Il risultato è scritto DIRETTAMENTE
+// nella textarea -- l'utente vede esattamente cosa verrà mandato al
+// generatore, nessuna combinazione nascosta lato JS prima dell'invio.
+const CALIBRATION_MARKER = "[CALIBRAZIONE]";
+
+function applyCalibrationToPrompt() {
+  const value = calibrationValueEl.value.trim();
+  const current = promptEl.value;
+  const markerIndex = current.indexOf(CALIBRATION_MARKER);
+  const base = markerIndex >= 0 ? current.slice(0, markerIndex).trimEnd() : current;
+
+  if (!value || !currentReferenceDimensionName) {
+    promptEl.value = base;
+    return;
+  }
+
+  const sentence = `\n\n${CALIBRATION_MARKER} La "${currentReferenceDimensionName}" misura esattamente ${value}mm nella realtà — usa questo valore come riferimento per calcolare tutte le altre quote in millimetri secondo le proporzioni descritte sopra.`;
+  promptEl.value = base + sentence;
+}
+
+calibrationValueEl.addEventListener("input", applyCalibrationToPrompt);
+
+function setStatus(state, text) {
+  statusDot.className = "status-dot " + state;
+  statusText.textContent = text;
+}
+
+function resetOutputPanels() {
+  warningBox.classList.remove("visible");
+  warningBox.textContent = "";
+  errorBox.classList.remove("visible");
+  errorBox.textContent = "";
+  metricsBox.classList.remove("visible");
+  downloads.classList.remove("visible");
+  codeView.textContent = "";
+}
+
+generateBtn.addEventListener("click", async () => {
+  const prompt = promptEl.value.trim();
+  if (!prompt) {
+    setStatus("error", "Scrivi una richiesta prima di generare.");
+    return;
+  }
+
+  const outputName = (outputNameEl.value.trim() || "generated_model").replace(/[^a-zA-Z0-9_\-]/g, "_");
+  outputNameEl.value = outputName;
+
+  generateBtn.disabled = true;
+  resetOutputPanels();
+  setStatus("busy", "Generazione in corso — LLM → CadQuery → OpenCASCADE...");
+  hudModel.textContent = "—";
+
+  try {
+    const resp = await fetch("/api/v1/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt, output_name: outputName,
+        material: materialSelect.value || "PLA",
+        process: processSelect.value || "FDM",
+        provider: providerSelect.value || "gemini",
+      }),
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json();
+      const detail = errData.detail || {};
+      setStatus("error", "Errore di compilazione — vedi dettagli sotto.");
+      errorBox.textContent = detail.message || "Errore sconosciuto.";
+      errorBox.classList.add("visible");
+      if (detail.generated_code) {
+        codeView.textContent = detail.generated_code;
+      }
+      return;
+    }
+
+    const data = await resp.json();
+
+    // Il selettore "Motore" sceglie cosa usare per la PROSSIMA generazione --
+    // qui invece mostriamo cosa è stato usato DAVVERO per QUESTO risultato,
+    // che può differire (percorso deterministico per parti standard semplici,
+    // vedi try_deterministic_fastener_code -- nessuna chiamata al modello).
+    const suffissoMotore = data.deterministic
+      ? " (percorso deterministico -- nessuna chiamata AI)"
+      : "";
+
+    if (data.status === "geometria_sospetta") {
+      setStatus("warn", "Generato, ma con avvisi geometrici." + suffissoMotore);
+      warningBox.textContent = (data.warnings || []).join("\n\n");
+      warningBox.classList.add("visible");
+    } else {
+      setStatus("ok", "Generazione completata." + suffissoMotore);
+    }
+
+    codeView.textContent = data.generated_code || "";
+
+    if (data.bbox_mm) {
+      bboxValue.textContent = `${data.bbox_mm.x} × ${data.bbox_mm.y} × ${data.bbox_mm.z}`;
+    } else {
+      bboxValue.textContent = "n/d";
+    }
+    volumeValue.innerHTML = data.volume_mm3 != null
+      ? `${data.volume_mm3.toLocaleString("it-IT")}<span class="m-unit">mm³</span>`
+      : `n/d`;
+
+    const dfm = data.dfm || {};
+    const wc = dfm.weight_cost || {};
+    weightValue.innerHTML = wc.weight_g != null
+      ? `${wc.weight_g.toLocaleString("it-IT")}<span class="m-unit">g</span>`
+      : "n/d";
+    costValue.innerHTML = wc.estimated_cost_eur != null
+      ? `${wc.estimated_cost_eur.toLocaleString("it-IT")}<span class="m-unit">EUR</span>`
+      : "n/d";
+
+    const oh = dfm.overhangs || {};
+    overhangValue.innerHTML = oh.overhang_area_pct != null
+      ? `${oh.overhang_area_pct}<span class="m-unit">%</span>`
+      : "n/d";
+
+    const wt = dfm.wall_thickness || {};
+    wallValue.innerHTML = wt.estimated_min_wall_mm != null
+      ? `${wt.estimated_min_wall_mm}<span class="m-unit">mm</span>`
+      : "n/d";
+
+    dfmDisclaimer.textContent = wc.cost_disclaimer
+      ? `${wc.cost_disclaimer} — spessore: stima campionata, non esaustiva.`
+      : "";
+
+    if (dfm.process && dfm.process.note) {
+      processNote.textContent = dfm.process.note;
+      processNote.title = dfm.process.note; // tooltip col testo completo, il div tronca visivamente
+    }
+
+    metricsBox.classList.add("visible");
+
+    if (data.files) {
+      if (data.files.step_path) {
+        dlStep.href = "/" + data.files.step_path;
+        dlStep.style.display = "";
+      } else {
+        // Solidi platonici (build_platonic_solid): solo STL disponibile,
+        // niente STEP -- vedi nota in polyhedra.py sul perché.
+        dlStep.style.display = "none";
+      }
+      if (data.files.drawing_path) {
+        dlDrawing.href = "/" + data.files.drawing_path;
+        dlDrawing.style.display = "";
+      } else {
+        // Niente disegno tecnico per i solidi mesh-only, o generazione
+        // fallita (un problema qui non blocca il resto -- vedi drawing_generator.py).
+        dlDrawing.style.display = "none";
+      }
+      if (data.files.dxf_path) {
+        dlDxf.href = "/" + data.files.dxf_path;
+        dlDxf.style.display = "";
+      } else {
+        // Niente profilo DXF per i solidi mesh-only, o export fallito
+        // (un problema qui non blocca il resto -- vedi dxf_export.py).
+        dlDxf.style.display = "none";
+      }
+      dlStl.href = "/" + data.files.stl_path;
+      downloads.classList.add("visible");
+      loadModel(
+        data.files.glb_path ? "/" + data.files.glb_path + "?t=" + Date.now() : null,
+        "/" + data.files.stl_path + "?t=" + Date.now()
+      );
+      hudModel.textContent = outputName;
+    }
+
+  } catch (err) {
+    setStatus("error", "Impossibile contattare il backend.");
+    errorBox.textContent = String(err);
+    errorBox.classList.add("visible");
+  } finally {
+    generateBtn.disabled = false;
+  }
+});
+
+promptEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    generateBtn.click();
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+.env
+outputs/*.step
+outputs/*.stl
+__pycache__/
+*.pyc

@@ -1,0 +1,163 @@
+{
+  "timestamp": "2026-08-29T01:41:43.716387",
+  "total": 12,
+  "successes": 12,
+  "results": [
+    {
+      "index": 1,
+      "prompt": "Un cubo pieno di lato 40mm.",
+      "success": true,
+      "elapsed_s": 1.35,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nside_length = 40.0\n\nresult = cq.Workplane(\"XY\").box(side_length, side_length, side_length)",
+      "files": {
+        "step_path": "outputs/batch_test_01.step",
+        "stl_path": "outputs/batch_test_01.stl"
+      }
+    },
+    {
+      "index": 2,
+      "prompt": "Un cilindro pieno di diametro 60mm e altezza 25mm.",
+      "success": true,
+      "elapsed_s": 1.43,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\ndiameter = 60.0\nheight = 25.0\n\nresult = (\n    cq.Workplane(\"XY\")\n    .cylinder(height, diameter / 2)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_02.step",
+        "stl_path": "outputs/batch_test_02.stl"
+      }
+    },
+    {
+      "index": 3,
+      "prompt": "Un disco piatto di diametro 80mm, spessore 8mm, con un foro centrale passante da 20mm.",
+      "success": true,
+      "elapsed_s": 1.42,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\ndiameter = 80.0\nthickness = 8.0\ncenter_hole_diameter = 20.0\n\nresult = (\n    cq.Workplane(\"XY\")\n    .circle(diameter / 2.0)\n    .circle(center_hole_diameter / 2.0)\n    .extrude(thickness)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_03.step",
+        "stl_path": "outputs/batch_test_03.stl"
+      }
+    },
+    {
+      "index": 4,
+      "prompt": "Una piastra rettangolare 100x60mm, spessore 5mm, con quattro fori agli angoli da 6mm, a 10mm dai bordi.",
+      "success": true,
+      "elapsed_s": 1.97,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nlength = 100.0\nwidth = 60.0\nthickness = 5.0\nhole_diameter = 6.0\nedge_offset = 10.0\n\n# Calcolo delle posizioni dei fori rispetto al centro della piastra\nx_offset = (length / 2) - edge_offset\ny_offset = (width / 2) - edge_offset\n\nresult = (\n    cq.Workplane(\"XY\")\n    .box(length, width, thickness)\n    .faces(\">Z\")\n    .workplane()\n    .pushPoints([\n        (x_offset, y_offset),\n        (-x_offset, y_offset),\n        (-x_offset, -y_offset),\n        (x_offset, -y_offset)\n    ])\n    .hole(hole_diameter)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_04.step",
+        "stl_path": "outputs/batch_test_04.stl"
+      }
+    },
+    {
+      "index": 5,
+      "prompt": "Una flangia circolare diametro 90mm, spessore 10mm, foro centrale 30mm, con 8 fori M5 disposti lungo una circonferenza di diametro 70mm.",
+      "success": true,
+      "elapsed_s": 6.74,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nouter_diameter = 90.0\nthickness = 10.0\ncentral_hole_diameter = 30.0\nbolt_circle_diameter = 70.0\nbolt_hole_diameter = 5.0  # Diametro nominale per vite M5 (foro passante standard)\nnum_holes = 8\n\nresult = (\n    cq.Workplane(\"XY\")\n    .circle(outer_diameter / 2)\n    .circle(central_hole_diameter / 2)\n    .extrude(thickness)\n    .faces(\">Z\")\n    .workplane()\n    .polarArray(bolt_circle_diameter / 2, 0, 360, num_holes)\n    .hole(bolt_hole_diameter)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_05.step",
+        "stl_path": "outputs/batch_test_05.stl"
+      }
+    },
+    {
+      "index": 6,
+      "prompt": "Un ingranaggio semplificato: disco di diametro 100mm e spessore 6mm con 6 fori di alleggerimento da 12mm disposti su una circonferenza di 70mm.",
+      "success": true,
+      "elapsed_s": 2.14,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\n# Parametri dell'ingranaggio\ndiameter = 100.0\nthickness = 6.0\nbore_diameter = 20.0        # Foro centrale per l'albero\nlight_hole_diameter = 12.0  # Diametro dei fori di alleggerimento\nlight_hole_bcd = 70.0       # Diametro della circonferenza dei fori (Bolt Circle Diameter)\nnum_light_holes = 6         # Numero di fori di alleggerimento\n\n# Creazione del disco principale con foro centrale e fori di alleggerimento\nresult = (\n    cq.Workplane(\"XY\")\n    .cylinder(thickness, diameter / 2)\n    .faces(\">Z\")\n    .workplane()\n    .hole(bore_diameter)\n    .faces(\">Z\")\n    .workplane()\n    .polarArray(light_hole_bcd / 2, 0, 360, num_light_holes)\n    .hole(light_hole_diameter)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_06.step",
+        "stl_path": "outputs/batch_test_06.stl"
+      }
+    },
+    {
+      "index": 7,
+      "prompt": "Un blocco 50x50x20mm con tutti gli spigoli verticali arrotondati con un raggio di 5mm.",
+      "success": true,
+      "elapsed_s": 1.53,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nlength = 50.0\nwidth = 50.0\nthickness = 20.0\nfillet_radius = 5.0\n\nresult = (\n    cq.Workplane(\"XY\")\n    .box(length, width, thickness)\n    .faces(\">Z or <Z\")\n    .edges()\n    .fillet(fillet_radius)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_07.step",
+        "stl_path": "outputs/batch_test_07.stl"
+      }
+    },
+    {
+      "index": 8,
+      "prompt": "Una staffa a L: due piastre di 60x30x5mm unite a 90 gradi, con un foro da 8mm su ciascuna piastra.",
+      "success": true,
+      "elapsed_s": 7.04,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nplate_length = 60.0\nplate_width = 30.0\nthickness = 5.0\nhole_diameter = 8.0\n\n# Piastra orizzontale: creata come box indipendente e forata al centro\nhorizontal_plate = (\n    cq.Workplane(\"XY\")\n    .box(plate_length, plate_width, thickness, centered=(False, False, False))\n    .faces(\">Z\")\n    .workplane()\n    .center(plate_length / 2, plate_width / 2)\n    .hole(hole_diameter)\n)\n\n# Piastra verticale: creata come box indipendente, forata e poi posizionata a 90 gradi\nvertical_plate = (\n    cq.Workplane(\"XY\")\n    .box(plate_length, plate_width, thickness, centered=(False, False, False))\n    .faces(\">Z\")\n    .workplane()\n    .center(plate_length / 2, plate_width / 2)\n    .hole(hole_diameter)\n    .rotate((0, 0, 0), (0, 1, 0), -90)\n    .translate((0, 0, plate_length))\n)\n\n# Unione finale dei solidi già forati\nresult = horizontal_plate.union(vertical_plate)",
+      "files": {
+        "step_path": "outputs/batch_test_08.step",
+        "stl_path": "outputs/batch_test_08.stl"
+      }
+    },
+    {
+      "index": 9,
+      "prompt": "Un contenitore a forma di scatola aperta: 80x60x40mm esterni, pareti spesse 3mm, senza coperchio.",
+      "success": true,
+      "elapsed_s": 4.09,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\n# Dimensioni esterne\nlength = 80.0\nwidth = 60.0\nheight = 40.0\nwall_thickness = 3.0\n\n# Creazione della scatola aperta\n# Usiamo un blocco pieno esterno e scaviamo la cavità dall'alto\nresult = (\n    cq.Workplane(\"XY\")\n    .box(length, width, height, centered=(True, True, False))\n    .faces(\">Z\")\n    .workplane()\n    .rect(length - 2 * wall_thickness, width - 2 * wall_thickness)\n    .cutBlind(-(height - wall_thickness))\n)",
+      "files": {
+        "step_path": "outputs/batch_test_09.step",
+        "stl_path": "outputs/batch_test_09.stl"
+      }
+    },
+    {
+      "index": 10,
+      "prompt": "Un tubo cavo: diametro esterno 40mm, diametro interno 32mm, lunghezza 100mm.",
+      "success": true,
+      "elapsed_s": 2.35,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\nouter_diameter = 40.0\ninner_diameter = 32.0\nlength = 100.0\n\nresult = (\n    cq.Workplane(\"XY\")\n    .circle(outer_diameter / 2)\n    .circle(inner_diameter / 2)\n    .extrude(length)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_10.step",
+        "stl_path": "outputs/batch_test_10.stl"
+      }
+    },
+    {
+      "index": 11,
+      "prompt": "Un supporto a T: base rettangolare 80x40x10mm con una colonna cilindrica centrale di diametro 20mm e altezza 50mm.",
+      "success": true,
+      "elapsed_s": 2.12,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\n# Dimensioni della base\nbase_length = 80.0\nbase_width = 40.0\nbase_thickness = 10.0\n\n# Dimensioni della colonna cilindrica\ncolumn_diameter = 20.0\ncolumn_height = 50.0\n\n# 1. Creazione della base rettangolare isolata e forata (se necessario, qui senza fori)\nbase_plate = cq.Workplane(\"XY\").box(\n    base_length, base_width, base_thickness, centered=(True, True, False)\n)\n\n# 2. Creazione della colonna cilindrica isolata\ncolumn = (\n    cq.Workplane(\"XY\")\n    .workplane(offset=base_thickness)\n    .cylinder(column_height, column_diameter / 2)\n)\n\n# 3. Unione dei solidi già formati\nresult = base_plate.union(column)",
+      "files": {
+        "step_path": "outputs/batch_test_11.step",
+        "stl_path": "outputs/batch_test_11.stl"
+      }
+    },
+    {
+      "index": 12,
+      "prompt": "Una piastra esagonale (chiave da 40mm lato-lato), spessore 8mm, con un foro esagonale centrale da 10mm.",
+      "success": true,
+      "elapsed_s": 4.88,
+      "error": null,
+      "error_category": "nessuno",
+      "generated_code": "import cadquery as cq\n\n# Dimensioni\n# Una chiave esagonale da 40mm (distanza tra i lati opposti / ampiezza della chiave - \"flat to flat\")\n# Il raggio del cerchio circoscritto per un esagono con ampiezza F (flat) è F / (sqrt(3)) o F / 2 / cos(30°)\nimport math\n\nflat_to_flat = 40.0\nouter_radius = (flat_to_flat / 2.0) / math.cos(math.radians(30))\n\ninner_flat_to_flat = 10.0\ninner_radius = (inner_flat_to_flat / 2.0) / math.cos(math.radians(30))\n\nthickness = 8.0\n\n# Creazione della piastra esagonale con foro esagonale centrale\nresult = (\n    cq.Workplane(\"XY\")\n    .polygon(6, outer_radius * 2)\n    .extrude(thickness)\n    .faces(\">Z\")\n    .workplane()\n    .polygon(6, inner_radius * 2)\n    .cutBlind(-thickness)\n)",
+      "files": {
+        "step_path": "outputs/batch_test_12.step",
+        "stl_path": "outputs/batch_test_12.stl"
+      }
+    }
+  ]
+}
