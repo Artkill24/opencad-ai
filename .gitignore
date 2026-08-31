@@ -1,5 +1,15 @@
 .env
 outputs/*.step
 outputs/*.stl
+outputs/*.glb
+outputs/*.dxf
+outputs/*.svg
+outputs/example_library.json
 __pycache__/
 *.pyc
+venv/
+.venv/
+.DS_Store
+*.swp
+.vscode/
+.idea/
