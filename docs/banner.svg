@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0 L0 0 0 20" fill="none" stroke="#D8DDE1" stroke-width="0.6"/>
+    </pattern>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 1 L10 5 L0 9 z" fill="#9E3226"/>
+    </marker>
+    <marker id="ai" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M10 1 L0 5 L10 9 z" fill="#9E3226"/>
+    </marker>
+    <marker id="flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 1.5 L10 5 L0 8.5 z" fill="#1C2B36"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="420" fill="#EDEFF1"/>
+  <rect width="1200" height="420" fill="url(#grid)"/>
+  <rect x="14" y="14" width="1172" height="392" fill="none" stroke="#1C2B36" stroke-width="2"/>
+  <rect x="26" y="26" width="1148" height="368" fill="none" stroke="#1C2B36" stroke-width="0.8"/>
+
+  <!-- Titolo -->
+  <text x="56" y="98" font-family="DejaVu Sans Condensed, DejaVu Sans" font-size="52" font-weight="bold" fill="#1C2B36" letter-spacing="-0.5">OpenCAD-AI</text>
+  <text x="56" y="128" font-family="DejaVu Sans Condensed, DejaVu Sans" font-size="17" fill="#41525E">Dal testo al codice CadQuery. Geometria parametrica vera, non una mesh.</text>
+  <line x1="56" y1="146" x2="470" y2="146" stroke="#1C2B36" stroke-width="1"/>
+
+  <!-- Prompt -->
+  <text x="56" y="196" font-family="DejaVu Sans Mono" font-size="14" fill="#41525E">prompt</text>
+  <rect x="56" y="208" width="330" height="72" fill="#FFFFFF" stroke="#B7C0C7" stroke-width="1"/>
+  <text x="70" y="234" font-family="DejaVu Sans Mono" font-size="13.5" fill="#1C2B36">Una vite a testa esagonale M6,</text>
+  <text x="70" y="254" font-family="DejaVu Sans Mono" font-size="13.5" fill="#1C2B36">lunghezza 25mm, con filetto</text>
+  <text x="70" y="274" font-family="DejaVu Sans Mono" font-size="13.5" fill="#1C2B36">reale visibile.</text>
+
+  <line x1="400" y1="244" x2="480" y2="244" stroke="#1C2B36" stroke-width="1.6" marker-end="url(#flow)"/>
+  <text x="404" y="234" font-family="DejaVu Sans Mono" font-size="12" fill="#41525E">cadquery</text>
+
+  <!-- Vite: vista laterale -->
+  <g stroke="#1C2B36" fill="none" stroke-width="1.8">
+    <!-- testa esagonale -->
+    <rect x="540" y="160" width="44" height="80"/>
+    <line x1="540" y1="180" x2="584" y2="180" stroke-width="0.9"/>
+    <line x1="540" y1="220" x2="584" y2="220" stroke-width="0.9"/>
+    <!-- gambo -->
+    <line x1="584" y1="176" x2="784" y2="176"/>
+    <line x1="584" y1="224" x2="784" y2="224"/>
+    <line x1="784" y1="176" x2="784" y2="224"/>
+  </g>
+  <!-- filetto -->
+  <g stroke="#1C2B36" stroke-width="0.9" fill="none" opacity="0.85">
+    <line x1="592" y1="176" x2="604" y2="224"/><line x1="608" y1="176" x2="620" y2="224"/>
+    <line x1="624" y1="176" x2="636" y2="224"/><line x1="640" y1="176" x2="652" y2="224"/>
+    <line x1="656" y1="176" x2="668" y2="224"/><line x1="672" y1="176" x2="684" y2="224"/>
+    <line x1="688" y1="176" x2="700" y2="224"/><line x1="704" y1="176" x2="716" y2="224"/>
+    <line x1="720" y1="176" x2="732" y2="224"/><line x1="736" y1="176" x2="748" y2="224"/>
+    <line x1="752" y1="176" x2="764" y2="224"/><line x1="768" y1="176" x2="780" y2="224"/>
+  </g>
+  <!-- asse -->
+  <line x1="516" y1="200" x2="808" y2="200" stroke="#9E3226" stroke-width="0.8" stroke-dasharray="14 4 3 4"/>
+
+  <!-- quote -->
+  <g stroke="#9E3226" stroke-width="0.9">
+    <line x1="584" y1="232" x2="584" y2="296"/>
+    <line x1="784" y1="232" x2="784" y2="296"/>
+    <line x1="584" y1="286" x2="784" y2="286" marker-start="url(#ai)" marker-end="url(#ar)"/>
+    <line x1="532" y1="160" x2="500" y2="160"/>
+    <line x1="532" y1="240" x2="500" y2="240"/>
+    <line x1="510" y1="160" x2="510" y2="240" marker-start="url(#ai)" marker-end="url(#ar)"/>
+    <line x1="700" y1="176" x2="700" y2="132"/>
+    <line x1="700" y1="132" x2="756" y2="132"/>
+  </g>
+  <text x="676" y="278" font-family="DejaVu Sans Condensed, DejaVu Sans" font-size="17" fill="#9E3226">25</text>
+  <text x="466" y="205" font-family="DejaVu Sans Condensed, DejaVu Sans" font-size="17" fill="#9E3226">10</text>
+  <text x="760" y="127" font-family="DejaVu Sans Condensed, DejaVu Sans" font-size="17" fill="#9E3226">M6</text>
+
+  <!-- cartiglio -->
+  <g stroke="#1C2B36" stroke-width="1.2" fill="none">
+    <rect x="856" y="252" width="304" height="118"/>
+    <line x1="856" y1="292" x2="1160" y2="292"/>
+    <line x1="856" y1="331" x2="1160" y2="331"/>
+    <line x1="1008" y1="292" x2="1008" y2="370"/>
+  </g>
+  <g font-family="DejaVu Sans Condensed, DejaVu Sans" fill="#1C2B36">
+    <text x="868" y="279" font-size="18" font-weight="bold">Vite ISO 4014 M6 x 25</text>
+    <text x="868" y="316" font-size="14" fill="#41525E">volume calcolato</text>
+    <text x="1020" y="316" font-size="14" fill="#41525E">esportabile</text>
+    <text x="868" y="355" font-size="15">938,66 mm³</text>
+    <text x="1020" y="355" font-size="15">STEP · STL · DXF</text>
+  </g>
+
+  <text x="56" y="356" font-family="DejaVu Sans Mono" font-size="13" fill="#41525E">python · fastapi · cadquery 2.4 · opencascade · three.js</text>
+  <text x="56" y="378" font-family="DejaVu Sans Mono" font-size="13" fill="#41525E">licenza MIT · github.com/Artkill24/opencad-ai</text>
+</svg>
