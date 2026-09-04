@@ -10,4 +10,5 @@ trimesh==5.0.0
 rtree==1.4.1
 scipy==1.17.1
 networkx==3.6.1
+slowapi==0.1.9
 cq_warehouse @ git+https://github.com/gumyr/cq_warehouse.git@main

@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 from llm_pipeline import generate_cad_code_with_repair
 from cad_engine import execute_and_export
@@ -12,6 +14,31 @@ from vision_pipeline import describe_shape_from_image, analyze_technical_drawing
 from assembler import assemble_and_export
 
 app = FastAPI(title="OpenCAD-AI Core Backend", version="0.1.0")
+
+
+def _client_ip(request: Request) -> str:
+    """
+    IP reale del chiamante. Dietro un proxy (Hugging Face Spaces, Cloudflare,
+    qualunque reverse proxy) request.client.host è l'IP del PROXY, uguale per
+    tutti: senza questa correzione il limite sarebbe condiviso da tutto il
+    mondo e il primo visitatore bloccherebbe gli altri. Il vero IP del client
+    è il primo valore di X-Forwarded-For.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "sconosciuto"
+
+
+# Limite per IP sugli endpoint che costano una chiamata al modello AI.
+# Configurabile da ambiente: in locale conviene alzarlo (RATE_LIMIT=1000/hour
+# nel .env) per non ostacolarsi durante lo sviluppo; sulla demo pubblica il
+# default protegge la quota API dalle richieste di chi arriva dal link.
+RATE_LIMIT = os.getenv("RATE_LIMIT", "5/hour")
+
+limiter = Limiter(key_func=_client_ip)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
@@ -74,7 +101,8 @@ async def list_processes():
 
 
 @app.post("/api/v1/describe-image")
-async def describe_image(file: UploadFile = File(...)):
+@limiter.limit(RATE_LIMIT)
+async def describe_image(request: Request, file: UploadFile = File(...)):
     image_bytes = await file.read()
     if not image_bytes:
         raise HTTPException(status_code=400, detail={"message": "File immagine vuoto."})
@@ -93,7 +121,8 @@ async def describe_image(file: UploadFile = File(...)):
 
 
 @app.post("/api/v1/analyze-drawing")
-async def analyze_drawing(file: UploadFile = File(...)):
+@limiter.limit(RATE_LIMIT)
+async def analyze_drawing(request: Request, file: UploadFile = File(...)):
     """
     Analizza un disegno tecnico (non una foto di un oggetto) ed estrae le
     parti rilevate con le loro quote -- endpoint separato da /describe-image
@@ -139,20 +168,20 @@ async def list_parts():
 
 
 @app.post("/api/v1/assemble")
-async def assemble(request: AssemblyRequest):
+async def assemble(payload: AssemblyRequest):
     """
     Combina più parti già generate (ciascuna un proprio file .step) in un
     assieme unico, posizionate secondo l'offset X/Y/Z fornito per
     ciascuna -- posizionamento MANUALE, non un risolutore automatico di
     vincoli meccanici (vedi assembler.py per il perché).
     """
-    if len(request.parts) < 2:
+    if len(payload.parts) < 2:
         raise HTTPException(
             status_code=422,
             detail={"message": "Servono almeno 2 parti per un assemblaggio."}
         )
 
-    for p in request.parts:
+    for p in payload.parts:
         if not os.path.isfile(p.step_path):
             raise HTTPException(
                 status_code=404,
@@ -161,13 +190,13 @@ async def assemble(request: AssemblyRequest):
 
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
-    step_out = os.path.join(output_dir, f"{request.output_name}.step")
-    stl_out = os.path.join(output_dir, f"{request.output_name}.stl")
-    glb_out = os.path.join(output_dir, f"{request.output_name}.glb")
+    step_out = os.path.join(output_dir, f"{payload.output_name}.step")
+    stl_out = os.path.join(output_dir, f"{payload.output_name}.stl")
+    glb_out = os.path.join(output_dir, f"{payload.output_name}.glb")
 
     try:
         result = assemble_and_export(
-            [p.model_dump() for p in request.parts],
+            [p.model_dump() for p in payload.parts],
             step_out_path=step_out,
             stl_out_path=stl_out,
             glb_out_path=glb_out,
@@ -192,19 +221,20 @@ async def assemble(request: AssemblyRequest):
 
 
 @app.post("/api/v1/generate")
-async def generate_cad(request: CADRequest):
+@limiter.limit(RATE_LIMIT)
+async def generate_cad(request: Request, payload: CADRequest):
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
-    file_prefix = os.path.join(output_dir, request.output_name)
+    file_prefix = os.path.join(output_dir, payload.output_name)
 
     def execute_fn(code: str) -> dict:
         return execute_and_export(
-            code, base_filename=file_prefix, timeout=request.timeout,
-            material=request.material, part_name=request.output_name,
+            code, base_filename=file_prefix, timeout=payload.timeout,
+            material=payload.material, part_name=payload.output_name,
         )
 
     repair_result = generate_cad_code_with_repair(
-        request.prompt, execute_fn, max_attempts=request.max_attempts, provider=request.provider
+        payload.prompt, execute_fn, max_attempts=payload.max_attempts, provider=payload.provider
     )
 
     python_code = repair_result["code"]
@@ -229,10 +259,10 @@ async def generate_cad(request: CADRequest):
     dfm = analyze_manufacturability(
         stl_path=exec_result["files"]["stl_path"],
         volume_mm3=exec_result.get("volume_mm3") or 0.0,
-        material=request.material,
-        process=request.process,
-        overhang_threshold_deg=request.overhang_threshold_deg,
-        min_wall_warn_mm=request.min_wall_warn_mm,
+        material=payload.material,
+        process=payload.process,
+        overhang_threshold_deg=payload.overhang_threshold_deg,
+        min_wall_warn_mm=payload.min_wall_warn_mm,
     )
     warnings = warnings + dfm.get("warnings", [])
 
@@ -245,7 +275,7 @@ async def generate_cad(request: CADRequest):
     # fallimento qui non deve mai bloccare la risposta già pronta.
     if status == "success" and not repair_result.get("deterministic"):
         add_verified_example(
-            request.prompt, python_code,
+            payload.prompt, python_code,
             exec_result.get("volume_mm3"), exec_result.get("bbox_mm"),
         )
 
